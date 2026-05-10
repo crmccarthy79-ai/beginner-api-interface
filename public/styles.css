@@ -29,6 +29,13 @@
 
 * { box-sizing: border-box; }
 
+/* The HTML [hidden] attribute should always win over component display
+   rules. Without this, a `display: flex` (or grid, etc.) on a component
+   class silently overrides `<element hidden>` and the element renders
+   anyway — which is how the sign-in / setup-error overlays both showed
+   even when the JS marked them hidden. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
