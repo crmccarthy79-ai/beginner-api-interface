@@ -60,14 +60,15 @@ On your forked repo's README, click the orange **Deploy with Vercel** button. It
 
 ### The Configure Project screen (both paths land here)
 
-3. Find the **Environment Variables** section and add **four** variables:
+3. Find the **Environment Variables** section and add **three** variables:
 
    | Name | Value |
    |---|---|
    | `ANTHROPIC_API_KEY` | your Anthropic key (starts with `sk-ant-`) |
    | `SUPABASE_URL` | from Supabase → Settings → API → Project URL |
    | `SUPABASE_ANON_KEY` | from Supabase → Settings → API → anon key |
-   | `SUPABASE_JWT_SECRET` | from Supabase → Settings → API → JWT Secret (under JWT Settings) |
+
+   > **Important:** when copying from Supabase, **use the copy icon next to each value** — not text selection. Manual selection can grab invisible characters that break things in ways you can't see. After pasting each value into Vercel, click at the very end of the field and tap Backspace once or twice as insurance.
 
 4. Click **Deploy**.
 5. Wait ~30 seconds. You'll see a confetti animation when it's done.
@@ -129,7 +130,7 @@ Even with auth locked down, set a cap on your Anthropic spending so the worst-ca
 
 **Magic link arrives but clicking it doesn't sign me in.** You skipped Step 4. Add your URL to Supabase's redirect allow-list.
 
-**500 error or "Authentication required" when sending a message.** Either `ANTHROPIC_API_KEY` is missing/wrong, or `SUPABASE_JWT_SECRET` doesn't match the one in your Supabase project. Re-copy from Supabase → Settings → API and redeploy.
+**500 error or "Authentication required" when sending a message.** Either `ANTHROPIC_API_KEY` is missing/wrong, or `SUPABASE_URL` / `SUPABASE_ANON_KEY` are wrong or have invisible characters from copy-paste. Re-copy from Supabase using the **copy icon** (not text selection), Backspace any trailing whitespace in Vercel, and redeploy.
 
 **"Insufficient credits."** Anthropic doesn't give free usage. Add a payment method at [console.anthropic.com](https://console.anthropic.com/) → Plans & Billing.
 
@@ -152,12 +153,11 @@ Even with auth locked down, set a cap on your Anthropic spending so the worst-ca
 git clone https://github.com/YOUR_USERNAME/beginner-api-interface.git
 cd beginner-api-interface
 
-# Create a .env file with all four keys
+# Create a .env file with all three keys
 cat > .env <<EOF
 ANTHROPIC_API_KEY=sk-ant-...
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...
-SUPABASE_JWT_SECRET=...
 EOF
 
 # On macOS with Homebrew Python, install uv first:

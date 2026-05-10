@@ -2,7 +2,7 @@
 
 A clean, ready-to-deploy chat UI for the Claude API. **Auth and per-user data sync are built in.** Follow the 5-step setup (including a one-toggle Supabase lockdown) and your deployment is private to you — strangers who find your URL can't spend your Anthropic credits.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcrmccarthy79-ai%2Fbeginner-api-interface&env=ANTHROPIC_API_KEY,SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_JWT_SECRET&envDescription=See%20docs%2FSUPABASE_SETUP.md%20for%20how%20to%20get%20the%20Supabase%20values&envLink=https%3A%2F%2Fgithub.com%2Fcrmccarthy79-ai%2Fbeginner-api-interface%2Fblob%2Fmain%2Fdocs%2FSUPABASE_SETUP.md&project-name=beginner-api-interface&repository-name=beginner-api-interface)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcrmccarthy79-ai%2Fbeginner-api-interface&env=ANTHROPIC_API_KEY,SUPABASE_URL,SUPABASE_ANON_KEY&envDescription=See%20docs%2FSUPABASE_SETUP.md%20for%20how%20to%20get%20the%20Supabase%20values&envLink=https%3A%2F%2Fgithub.com%2Fcrmccarthy79-ai%2Fbeginner-api-interface%2Fblob%2Fmain%2Fdocs%2FSUPABASE_SETUP.md&project-name=beginner-api-interface&repository-name=beginner-api-interface)
 
 > **First time deploying anything?** Read [`docs/SETUP.md`](docs/SETUP.md) — a step-by-step guide with no shortcuts and no assumed knowledge. The only fiddly part is a 5-minute one-time Supabase setup; [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) walks through that.
 
@@ -48,9 +48,9 @@ Full step-by-step in [`docs/SETUP.md`](docs/SETUP.md).
 ```
 beginner-api-interface/
 ├── api/
-│   ├── chat.py              ← Serverless endpoint. Verifies JWT, then proxies to Anthropic & streams back.
+│   ├── chat.py              ← Serverless endpoint. Verifies auth via Supabase, then proxies to Anthropic & streams back.
 │   ├── config.py            ← Returns Supabase URL+anon key from env vars to the frontend.
-│   └── requirements.txt     ← Python deps: anthropic + PyJWT.
+│   └── requirements.txt     ← Python deps: just `anthropic` (auth uses stdlib urllib).
 ├── public/
 │   ├── index.html           ← Page skeleton: sign-in screen + main shell + dialogs.
 │   ├── styles.css           ← All styling. Theme via CSS variables at the top.
@@ -71,7 +71,7 @@ There's no build step, no framework, no bundler.
 
 [`api/chat.py`](api/chat.py) is a Python serverless function. It:
 
-1. **Verifies the request's JWT** against `SUPABASE_JWT_SECRET`. Anything missing or invalid → 401. This is what stops a stranger from calling `/api/chat` directly with curl.
+1. **Verifies the request's auth token** by asking Supabase's `/auth/v1/user` endpoint whether the token is valid. Anything missing or invalid → 401. This is what stops a stranger from calling `/api/chat` directly with curl.
 2. Builds an Anthropic message stream with caching, optional web search, optional extended thinking.
 3. Forwards events back over Server-Sent Events: text deltas, thinking deltas, tool-use notifications, final usage.
 
@@ -134,7 +134,7 @@ This README and most of this app were built that way.
 ## What this isn't
 
 - **Safe out of the box without locking down signups.** ⚠️ The auth wall doesn't help you if anyone can sign up — they'd just enter their email, get a magic link, and start spending your Anthropic credits. **You must disable signups in Supabase after creating your own account** (see [docs/SETUP.md Step 6](docs/SETUP.md#step-6-lock-down-signups-required-before-sharing)). This is one toggle and it's the difference between "private to you" and "open bar." Don't share your URL until you've done it.
-- **Foolproof.** A determined attacker who got your `SUPABASE_JWT_SECRET` could forge tokens. Keep it secret. The repo's `.gitignore` covers `.env`; if you ever expose the secret, rotate it in Supabase Settings → API.
+- **Foolproof.** Auth is only as strong as Supabase's user verification. The repo's `.gitignore` covers `.env`, so secrets don't get committed; if you ever leak credentials, rotate them in Supabase Settings → API and redeploy.
 - **Free of Anthropic charges for *your own* usage.** The auth wall stops *other people* from costing you money. Your own chats still hit your bill. Set a monthly spending cap at [console.anthropic.com](https://console.anthropic.com/) → Plans & Billing for peace of mind.
 - **Without rate limits.** Nothing in this code stops a signed-in user (you, by default, after lockdown) from hammering `/api/chat`. Add rate-limiting at the Vercel edge or in the function if you need it.
 - **A finished product.** It's a learning reference designed to be modified. Markdown rendering, real-time multi-user sync, file storage, batch API — all good extensions.

@@ -41,16 +41,14 @@ That schema creates three tables (projects, conversations, files) and locks them
 
 ## Step 3: Grab the values you need
 
-You need three values from your Supabase project to put into Vercel:
+You need **two values** from your Supabase project to put into Vercel:
 
-1. **Supabase URL** and **anon key**: in the left sidebar, click the gear icon (**Project Settings**) → **API**. Look for:
-   - **Project URL** — looks like `https://xxxxxxxxxxxxx.supabase.co`. Copy it.
-   - **anon / public key** — a long string starting with `eyJ`. Copy it.
-2. **JWT Secret**: still in **Project Settings → API**, scroll down to **JWT Settings** → **JWT Secret**. Click the eye icon to reveal, then copy it.
+1. **Project URL**: in the left sidebar, click the gear icon (**Project Settings**) → **API**. Find **Project URL** — looks like `https://xxxxxxxxxxxxx.supabase.co`. **Use the copy button** next to it. (Manual highlight-and-copy can grab invisible characters from styled UI elements — we've been burned by this. Always click the copy icon.)
+2. **anon / public key**: same page, look for the **anon / public** key — a long string starting with `eyJ`. **Use the copy button** here too.
 
-Keep all three open in a notepad — you'll paste them into Vercel in the next step.
+> **A note on the keys:** the **anon key** is designed to be public (it's shipped to every browser that loads your app). Row-level security policies in the schema are what actually protect data, not key secrecy.
 
-> **A note on the keys:** the **anon key** is designed to be public (it's shipped to every browser that loads your app). The **JWT secret** is **NOT** — keep it private. The schema's row-level security policies are what actually protect data, even though the anon key is public.
+> **About the JWT Secret** you might see on the same page: this app **does not need it.** We verify auth tokens by asking Supabase's API directly, which works regardless of signing algorithm and means one less thing for you to copy correctly. You can ignore it.
 
 ---
 
@@ -59,14 +57,14 @@ Keep all three open in a notepad — you'll paste them into Vercel in the next s
 If you've already deployed to Vercel:
 
 1. Go to [vercel.com](https://vercel.com) → your project → **Settings → Environment Variables**.
-2. Add these three:
+2. Add these two:
    - **Name:** `SUPABASE_URL`     — **Value:** the Project URL from Step 3
    - **Name:** `SUPABASE_ANON_KEY` — **Value:** the anon key from Step 3
-   - **Name:** `SUPABASE_JWT_SECRET` — **Value:** the JWT Secret from Step 3
-3. Make sure they're available for **Production** (and Preview if you want).
-4. Go to **Deployments** → most recent → ⋯ → **Redeploy**.
+3. **For each value**: after pasting, click at the very end of the field and press Backspace once or twice to nuke any trailing invisible characters. Yes, really.
+4. Make sure both are scoped to **Production** (and Preview if you want).
+5. Go to **Deployments** → most recent → ⋯ → **Redeploy**.
 
-If you're deploying for the first time, you'll add these on Vercel's "Configure Project" screen along with `ANTHROPIC_API_KEY` (so 4 environment variables total).
+If you're deploying for the first time, you'll add these on Vercel's "Configure Project" screen along with `ANTHROPIC_API_KEY` (3 environment variables total).
 
 ---
 
@@ -117,6 +115,6 @@ Each signed-in user gets their own private space — their projects, conversatio
 
 **Magic link arrives but clicking it doesn't sign me in.** You probably skipped Step 5. The redirect URL has to be on Supabase's allow-list.
 
-**"Authentication required" when sending a chat.** Your `SUPABASE_JWT_SECRET` env var isn't matching the one in your Supabase project. Re-copy it from Supabase Settings → API → JWT Secret, paste into Vercel, redeploy.
+**"Authentication required" when sending a chat.** Either `SUPABASE_URL` / `SUPABASE_ANON_KEY` are missing in Vercel, or one of them has an invisible character from copy-paste. Re-copy using the **copy button** in Supabase (not text selection), Backspace any trailing whitespace after pasting, and redeploy.
 
 **I want to start over with a fresh database.** Supabase dashboard → Project Settings → General → scroll to **Pause project** or **Delete project**. Or just drop the tables in SQL Editor: `DROP TABLE files; DROP TABLE conversations; DROP TABLE projects;` then re-run the schema.

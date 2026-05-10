@@ -5,26 +5,29 @@ Runs on Vercel's Python runtime. Streams the model's response back to the
 browser using Server-Sent Events (SSE) so messages appear as they're written.
 
 Authentication: every request must carry a Supabase access token in the
-Authorization header (the frontend gets this from supabase.auth.getSession()).
-We verify the token against SUPABASE_JWT_SECRET. Anything missing or invalid
-returns 401 — that's what stops a stranger who finds the URL from spending
-your API credits.
+Authorization header. We verify by asking Supabase's /auth/v1/user endpoint
+whether the token is valid — if it returns a user, the token is good. This
+sidesteps any JWT-algorithm choices Supabase makes (HS256 vs RS256 vs ES256)
+and means there's no JWT secret to copy-paste correctly.
 
 Required environment variables:
-  ANTHROPIC_API_KEY     — get one at console.anthropic.com
-  SUPABASE_JWT_SECRET   — Supabase project Settings → API → JWT Secret
+  ANTHROPIC_API_KEY   — get one at console.anthropic.com
+  SUPABASE_URL        — your Supabase project URL (no trailing path)
+  SUPABASE_ANON_KEY   — your Supabase project anon key
 """
 
 from http.server import BaseHTTPRequestHandler
 import json
 import os
+import urllib.error
+import urllib.request
 
 import anthropic
-import jwt
 
 DEFAULT_MODEL = "claude-sonnet-4-6"
 DEFAULT_MAX_TOKENS = 4096
 THINKING_BUDGET = 4096
+AUTH_TIMEOUT_SECONDS = 5
 
 
 class handler(BaseHTTPRequestHandler):
@@ -109,27 +112,40 @@ class handler(BaseHTTPRequestHandler):
     # ---- Helpers ----
 
     def _verify_auth(self):
-        """Verify the Supabase access token. Returns user_id or None."""
+        """
+        Verify the Supabase access token by asking Supabase about it.
+
+        Calls GET /auth/v1/user with the user's token + the project's anon
+        key. Supabase returns the user if the token is valid, 401 if not.
+        """
         auth = self.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             return None
         token = auth[len("Bearer "):].strip()
         if not token:
             return None
-        secret = os.environ.get("SUPABASE_JWT_SECRET")
-        if not secret:
-            # Fail closed — if the secret isn't configured we can't verify
-            # anything, so refuse to serve rather than allowing through.
+
+        supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+        supabase_anon = os.environ.get("SUPABASE_ANON_KEY", "")
+        if not supabase_url or not supabase_anon:
             return None
+
         try:
-            payload = jwt.decode(
-                token,
-                secret,
-                algorithms=["HS256"],
-                audience="authenticated",
+            req = urllib.request.Request(
+                f"{supabase_url}/auth/v1/user",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "apikey": supabase_anon,
+                },
             )
-            return payload.get("sub")
-        except jwt.PyJWTError:
+            with urllib.request.urlopen(req, timeout=AUTH_TIMEOUT_SECONDS) as resp:
+                if resp.status != 200:
+                    return None
+                body = json.loads(resp.read().decode())
+                return body.get("id")
+        except urllib.error.HTTPError:
+            return None
+        except Exception:
             return None
 
     def _handle_event(self, event):
