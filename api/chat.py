@@ -71,6 +71,7 @@ class handler(BaseHTTPRequestHandler):
             "claude-opus-4-8",
             "claude-fable-5",
             "claude-sonnet-5",
+            "claude-opus-5",
         }
 
         max_tokens = int(data.get("maxTokens") or DEFAULT_MAX_TOKENS)
