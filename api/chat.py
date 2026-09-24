@@ -72,6 +72,8 @@ class handler(BaseHTTPRequestHandler):
             "claude-fable-5",
             "claude-sonnet-5",
             "claude-opus-5",
+            "claude-opus-5-5",
+            "claude-fable-5-1",
         }
 
         max_tokens = int(data.get("maxTokens") or DEFAULT_MAX_TOKENS)
@@ -103,6 +105,11 @@ class handler(BaseHTTPRequestHandler):
                 kwargs["thinking"] = {"type": "adaptive"}
             else:
                 kwargs["thinking"] = {"type": "enabled", "budget_tokens": THINKING_BUDGET}
+        # Opus 5.5 defaults to effort "medium" (Opus 5 defaulted to "high").
+        # Pin it to "high" so it matches Opus 5. extra_body so any SDK
+        # version passes it through.
+        if model == "claude-opus-5-5":
+            kwargs["extra_body"] = {"output_config": {"effort": "high"}}
 
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
